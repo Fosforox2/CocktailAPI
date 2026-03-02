@@ -1,121 +1,70 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import CountryCard from "@/components/CountryCard";
 
-type Drink = {
-    idDrink: string;
-    strDrink: string;
-    strDrinkThumb: string;
-    strCategory: string;
-    strAlcoholic: string;
-    strGlass: string;
+export type Country = {
+  cca3: string;
+  name: {
+    common: string;
+    official?: string;
+  };
+  flags: {
+    png: string;
+    alt?: string;
+  };
 };
 
-const Home = () => {
-    const router = useRouter();
-    const [drinks, setDrinks] = useState<Drink[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [name, setName] = useState("");
-    const [finalName, setFinalName] = useState("");
+export default function Home() {
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [search, setSearch] = useState("");
 
-    const fetchDrinks = async (name: string) => {
-    setLoading(true);
-    setError(null);
+  useEffect(() => {
+    const fetchCountries = async () => {
+      const res = await fetch(
+        "https://restcountries.com/v3.1/all?fields=name,flags,cca3"
+      );
+      const data = await res.json();
+      setCountries(data);
+    };
 
-    try {
-        const res = await fetch(
-            `https://www.thecocktaildb.com/api/json/v1/1/search.php?s=${name}`
-        );
+    fetchCountries();
+  }, []);
 
-        const data = await res.json();
+  const filtered = countries.filter((country) =>
+    country.name.common.toLowerCase().includes(search.toLowerCase())
+  );
 
-        if (Array.isArray(data.drinks)) {
-            setDrinks(data.drinks);
-        } else {
-            setDrinks([]);
-        }
+  return (
+    <div style={{ padding: "40px" }}>
+      <h1>Explorador de Países</h1>
 
-    } catch (e) {
-        setError("Error al obtener cocktails");
-        setDrinks([]);
-    } finally {
-        setLoading(false);
-    }
-};
-    useEffect(() => {
-        fetchDrinks(finalName);
-    }, [finalName]);
+      <input
+        type="text"
+        placeholder="Buscar país..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{
+          padding: "10px",
+          marginTop: "20px",
+          width: "300px",
+          borderRadius: "8px",
+          border: "1px solid #ccc",
+        }}
+      />
 
-    return (
-        <div>
-            <h1>Buscador de Cocktails</h1>
-
-            <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="..."
-            />
-
-            <button onClick={() => setFinalName(name)}>
-                Search
-            </button>
-
-            {loading && <h2>Loading...</h2>}
-            {error && <h3>{error}</h3>}
-
-            {!loading && drinks.length === 0 && finalName && (
-                <h3>No se encontraron resultados</h3>
-            )}
-
-                
-                <div style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, 120px)",
-                gap: "12px",
-                marginTop: "20px"
-                }}
-                >
-            {drinks.map((drink) => (
-                <Link
-                    key={drink.idDrink}
-                    href={`/busquedas/${drink.idDrink}`}
-                    style={{
-                        textDecoration: "none",
-                        color: "inherit",
-                        fontSize: "12px"
-                    }}
-                >
-                    <div
-                        style={{
-                            width: "120px",
-                            cursor: "pointer"
-                        }}
-                    >
-                        <img
-                            src={drink.strDrinkThumb}
-                            alt={drink.strDrink}
-                            style={{
-                                width: "120px",
-                                height: "120px",   // 👈 CUADRADA
-                                objectFit: "cover",
-                                borderRadius: "10px"
-                            }}
-                        />
-
-                        <h3 style={{ fontSize: "12px", marginTop: "4px" }}>
-                            {drink.strDrink}
-                        </h3>
-
-                        <p style={{ opacity: 0.6 }}>{drink.strAlcoholic}</p>
-                    </div>
-                </Link>
-            ))}
-        </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+          gap: "20px",
+          marginTop: "40px",
+        }}
+      >
+        {filtered.map((country) => (
+          <CountryCard key={country.cca3} country={country} />
+        ))}
       </div>
-    );
-};
-
-export default Home;
+    </div>
+  );
+}
